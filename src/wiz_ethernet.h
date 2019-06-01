@@ -1,10 +1,15 @@
 /* wiz_etherenet.h - defines the base class for Wiznet w5100 and W5500 ethernet controllers. */
 #include "simulationmember.h"
+#include "pin.h"
+#include "rwmem.h"
+#include "wiz_socket.h"
 
 #ifndef WIZ_ETHERNET_H
 #define WIZ_ETHERNET_H
 
-class wiz_ethernet : public simulationmember
+class wiz_socket;
+
+class wiz_ethernet : public SimulationMember
 {
 private:
 protected:
@@ -29,7 +34,7 @@ protected:
 						uport_reg0, uport_reg1;
 
     RWMemoryMember **rw;  ///memory for general purpose registers - all other memory is included in the sockets
-    wiz_socket socket[4];
+    wiz_socket *socket;
 
 public:
     // SPI port pins

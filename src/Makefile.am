@@ -57,7 +57,8 @@ libsim_la_SOURCES = \
   ioregs.cpp irqsystem.cpp ui/keyboard.cpp ui/lcd.cpp memory.cpp \
   ui/mysocket.cpp net.cpp pin.cpp ui/extpin.cpp pinatport.cpp pinmon.cpp \
   rwmem.cpp ui/scope.cpp ui/serialrx.cpp ui/serialtx.cpp spisrc.cpp spisink.cpp \
-  specialmem.cpp string2.cpp systemclock.cpp traceval.cpp ui/ui.cpp 
+  specialmem.cpp string2.cpp systemclock.cpp traceval.cpp ui/ui.cpp \
+  wiz_ethernet.cpp wiz_socket.cpp
 
 libsim_la_LDFLAGS = -shared -avoid-version -rpath $(libdir)
 libsim_la_LIBADD = $(LIBWSOCK_FLAGS)
@@ -87,7 +88,8 @@ pkginclude_HEADERS = \
   elfio/elfio/elfio_dynamic.hpp elfio/elfio/elfio_header.hpp elfio/elfio/elfio_note.hpp \
   elfio/elfio/elfio_relocation.hpp elfio/elfio/elfio_section.hpp \
   elfio/elfio/elfio_segment.hpp elfio/elfio/elfio_strings.hpp \
-  elfio/elfio/elfio_symbols.hpp elfio/elfio/elfio_utils.hpp
+  elfio/elfio/elfio_symbols.hpp elfio/elfio/elfio_utils.hpp \
+  wiz_ethernet.h wiz_socket.h
 
 export LIBSIM_SRCS=$(libsim_la_SOURCES)
 export LIBSIM_HDRS=$(pkginclude_HEADERS)

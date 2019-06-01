@@ -2,7 +2,8 @@
 #define WIZ_SOCKET_H
 
 #include <sys/socket.h>
-#include "wiz_etherent.h"
+#include "rwmem.h"
+#include "wiz_ethernet.h"
 
 class wiz_socket
 {
@@ -11,7 +12,7 @@ private:
     RWMemoryMember **socketrw;  // memory associated with the socket registers
     RWMemoryMember **txrw;      // memory associated with the transmit buffer
     RWMemoryMember **rxrw;      // memory associated with the receive buffer
-    IO_REG<wiz_socket> mreg,
+    IOReg<wiz_socket> mreg,
 		creg,
 		ireg,
 		sreg,
