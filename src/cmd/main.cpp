@@ -3,7 +3,7 @@
  *
  * simulavr - A simulator for the Atmel AVR family of microcontrollers.
  * Copyright (C) 2001, 2002, 2003   Klaus Rudolph
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -58,6 +58,8 @@ using namespace std;
 #include "helper.h"
 #include "specialmem.h"
 #include "irqsystem.h"
+#include "wiz_ethernet.h"
+#include "w5500_eth.h"
 
 #include "dumpargs.h"
 
@@ -67,7 +69,7 @@ const char *SplitOffsetFile(const char *arg,
                             unsigned long *offset)
 {
     char *end;
-    
+
     if(!StringToUnsignedLong(arg, offset, &end, base)) {
         cerr << name << ": offset is not a number" << endl;
         exit(1);
@@ -86,11 +88,11 @@ const char *SplitOffsetFile(const char *arg,
         cerr << name << ": argument has comma but no filename" << endl;
         exit(1);
     }
-    
+
     return end;
 }
 
-const char Usage[] = 
+const char Usage[] =
     "AVR-Simulator Version " VERSION "\n"
     "-u                    run with user interface for external pin\n"
     "                      handling at port 7777\n"
@@ -134,6 +136,7 @@ const char Usage[] =
     "-o <trace-value-file> Specifies a file into which all available trace value names\n"
     "                      will be written.\n"
     "-V --version          print out version and exit immediately\n"
+    "-E --ethernet         simulate a wiznet 5500 ethernet controller connected to spi bus"
     "-h --help             print this help\n"
     "\n";
 
@@ -152,20 +155,24 @@ int main(int argc, char *argv[]) {
     unsigned long long maxRunTime = 0;
     unsigned long long linestotrace = 1000000;
     UserInterface *ui;
-    
+
     unsigned long writeToPipeOffset = 0x20;
     unsigned long readFromPipeOffset = 0x21;
     unsigned long writeToAbort = 0;
     unsigned long writeToExit = 0;
     string readFromPipeFileName = "";
     string writeToPipeFileName = "";
-    
+
     vector<string> terminationArgs;
-    
+
     vector<string> tracer_opts;
     bool tracer_dump_avail = false;
     string tracer_avail_out;
-    
+
+    bool simulateEthernet = false;
+    wiz_ethernet * eth = 0;
+    Net ssnet, sclknet, mosinet, misonet;
+
     while (1) {
         //int this_option_optind = optind ? optind : 1;
         int option_index = 0;
@@ -191,47 +198,48 @@ int main(int argc, char *argv[]) {
             {"core-dump", 1, 0, 'C'},
             {"irqstatistic", 0, 0, 's'},
             {"help", 0, 0, 'h'},
+            {"ethernet",0,0,'E'},
             {0, 0, 0, 0}
         };
-        
-        c = getopt_long(argc, argv, "a:e:f:d:gGm:p:t:uxyzhvnisF:R:W:VT:B:c:C:o:l:", long_options, &option_index);
+
+        c = getopt_long(argc, argv, "a:e:f:d:gGm:p:t:uxyzhvnisF:R:W:VT:B:c:C:o:l:E", long_options, &option_index);
         if(c == -1)
             break;
-        
+
         switch(c) {
             case 'B':
             case 'T':
                 terminationArgs.push_back(optarg);
                 break;
-            
+
             case 'v':
                 global_verbose_on = 1;
                 break;
-            
-            case 'R': //read from pipe 
-                readFromPipeFileName = 
+
+            case 'R': //read from pipe
+                readFromPipeFileName =
                     SplitOffsetFile(optarg, "readFromPipe", 16, &readFromPipeOffset);
                 break;
-            
+
             case 'W': //write to pipe
-                writeToPipeFileName = 
+                writeToPipeFileName =
                    SplitOffsetFile(optarg, "writeToPipe", 16, &writeToPipeOffset);
                 break;
-            
+
             case 'a': // write to abort
                 if(!StringToUnsignedLong(optarg, &writeToAbort, NULL, 16)) {
                     cerr << "writeToAbort is not a number" << endl;
                     exit(1);
                 }
                 break;
-            
+
             case 'e': // write to exit
                 if(!StringToUnsignedLong(optarg, &writeToExit, NULL, 16)) {
                     cerr << "writeToExit is not a number" << endl;
                     exit(1);
                 }
                 break;
-            
+
             case 'F':
                 if(!StringToUnsignedLongLong(optarg, &fcpu, NULL, 10)) {
                     cerr << "frequency is not a number" << endl;
@@ -261,32 +269,32 @@ int main(int argc, char *argv[]) {
                 }
                 avr_message("Maximum Run Time: %lld", maxRunTime);
                 break;
-            
+
             case 'u':
                 avr_message("Run with User Interface at Port 7777");
                 userinterface_flag = 1;
                 break;
-            
+
             case 'f':
                 avr_message("File to load: %s", optarg);
                 filename = optarg;
                 break;
-            
+
             case 'd':
                 devicename = optarg;
                 break;
-            
+
             case 'g':
                 avr_message("Running as gdb-server");
                 gdbserver_flag = 1;
                 break;
-            
+
             case 'G':
                 avr_message("Running with debug information from gdbserver");
                 global_gdb_debug = 1;
                 gdbserver_flag = 1;
                 break;
-            
+
             case 'p':
                 if(!StringToLong( optarg, &global_gdbserver_port, NULL, 10)) {
                     cerr << "GDB Server Port is not a number" << endl;
@@ -294,45 +302,49 @@ int main(int argc, char *argv[]) {
                 }
                 avr_message("Running on port: %ld", global_gdbserver_port);
                 break;
-            
+
             case 't':
                 avr_message("Running in Trace Mode with maximum %lld lines per file",
                             linestotrace);
 
                 sysConHandler.SetTraceFile(optarg, linestotrace);
                 break;
-            
+
             case 'V':
                 cout << "SimulAVR " << VERSION << endl
                      << "See documentation for copyright and distribution terms" << endl
                      << endl;
                 exit(0);
                 break;
-            
+
             case 'n':
                 cout << "We will NOT wait for a gdb connection, "
                         "simulation starts now!" << endl;
                 globalWaitForGdbConnection = false;
                 break;
-            
+
             case 'c':
                 tracer_opts.push_back(optarg);
                 break;
-            
+
             case 'o':
                 tracer_dump_avail = true;
                 tracer_avail_out = optarg;
                 break;
-             
+
             case 's':
                 enableIRQStatistic = true;
                 break;
-            
+
             case 'C':
                 avr_message("Write core dump on exit to file: %s", optarg);
                 coredumpfile = optarg;
                 break;
-            
+
+            case 'E':
+                simulateEthernet = true;
+                break;
+
             default:
                 cout << Usage
                      << "Supported devices:" << endl
@@ -340,11 +352,11 @@ int main(int argc, char *argv[]) {
                 exit(0);
         }
     }
-    
+
     /* get dump manager and inform it, that we have a single device application */
     DumpManager *dman = DumpManager::Instance();
     dman->SetSingleDeviceApp();
-    
+
     /* check, if devicename is given or get it out from elf file, if given */
     unsigned int sig;
     char *new_devicename = (char *)malloc(1024); // can't be static
@@ -358,22 +370,43 @@ int main(int argc, char *argv[]) {
     AvrDevice *dev1 = AvrFactory::instance().makeDevice(new_devicename);
     dev1->SetDeviceNameAndSignature(new_devicename, sig);
     free(new_devicename);
-    
+
+    // create the ethernet controller if the command line option has requested it
+    if (simulateEthernet) {
+        eth = new w5500_eth();
+        if (!eth) {
+            cerr << "Unable to simulate ethernet controller" << endl;
+            exit(1);
+        }
+
+        // connect the ethernet controller pins to the  nets
+        misonet.Add(eth->getMisoPin());
+        mosinet.Add(eth->getMosiPin());
+        ssnet.Add(eth->getSsPin());
+        sclknet.Add(eth->getSckPin());
+
+        // add the device pins to the net
+        mosinet.Add(dev1->GetPin("MOSI"));
+        misonet.Add(dev1->GetPin("MISO"));
+        ssnet.Add(dev1->GetPin("SS"));
+        sclknet.Add(dev1->GetPin("SCLK"));
+    }
+
     /* We had to wait with dumping the available tracing values
       until the device has been created! */
     if(tracer_dump_avail) {
         ShowRegisteredTraceValues(tracer_avail_out);
         exit(0);
     }
-    
+
     /* handle DumpTrace option */
     SetDumpTraceArgs(tracer_opts, dev1);
-    
+
     if(!gdbserver_flag && filename == "unknown") {
         cerr << "Specify either --file <executable> or --gdbserver (or --gdb-stdin)" << endl;
         exit(1);
     }
-    
+
     //if we want to insert some special "pipe" Registers we could do this here:
     if(readFromPipeFileName != "") {
         avr_message("Add ReadFromPipe-Register at 0x%lx and read from file: %s",
@@ -381,39 +414,39 @@ int main(int argc, char *argv[]) {
         dev1->ReplaceIoRegister(readFromPipeOffset,
             new RWReadFromFile(dev1, "FREAD", readFromPipeFileName.c_str()));
     }
-    
+
     if(writeToPipeFileName != "") {
         avr_message("Add WriteToPipe-Register at 0x%lx and write to file: %s",
                     writeToPipeOffset, writeToPipeFileName.c_str());
         dev1->ReplaceIoRegister(writeToPipeOffset,
             new RWWriteToFile(dev1, "FWRITE", writeToPipeFileName.c_str()));
     }
-    
+
     if(writeToAbort) {
         avr_message("Add WriteToAbort-Register at 0x%lx", writeToAbort);
         dev1->ReplaceIoRegister(writeToAbort, new RWAbort(dev1, "ABORT"));
     }
-    
+
     if(writeToExit) {
         avr_message("Add WriteToExit-Register at 0x%lx", writeToExit);
         dev1->ReplaceIoRegister(writeToExit, new RWExit(dev1, "EXIT"));
     }
-    
+
     if(filename != "unknown" ) {
         dev1->Load(filename.c_str());
         dev1->Reset(); // reset after load data from file to activate fuses and lockbits
     }
-    
+
     //if we have a file we can check out for termination lines.
     vector<string>::iterator ii;
     for(ii = terminationArgs.begin(); ii != terminationArgs.end(); ii++) {
         avr_message("Termination or Breakpoint Symbol: %s", (*ii).c_str());
         dev1->RegisterTerminationSymbol((*ii).c_str());
     }
-    
+
     //if not gdb, the ui will be master controller :-)
     ui = (userinterface_flag == 1) ? new UserInterface(7777) : NULL;
-    
+
     if(fcpu != 0)
         dev1->SetClockFreq((SystemClockOffset)1000000000 / fcpu); // time base is 1ns!
 
@@ -430,12 +463,13 @@ int main(int argc, char *argv[]) {
 
     if(sysConHandler.GetTraceState())
         dev1->trace_on = 1;
-    
+
     dman->start(); // start dump session
-    
+
     long steps = 0;
     if(gdbserver_flag == 0) { // no gdb
         SystemClock::Instance().Add(dev1);
+        if (eth) SystemClock::Instance().Add(eth);
         if(maxRunTime == 0) {
             steps = SystemClock::Instance().Endless();
             cout << "SystemClock::Endless stopped" << endl
@@ -450,6 +484,7 @@ int main(int argc, char *argv[]) {
         avr_message("Waiting for gdb connection ...");
         GdbServer gdb1(dev1, global_gdbserver_port, global_gdb_debug, globalWaitForGdbConnection);
         SystemClock::Instance().Add(&gdb1);
+        if (eth) SystemClock::Instance().Add(eth);
         SystemClock::Instance().Endless();
         if(global_verbose_on) {
             cout << "SystemClock::Endless stopped" << endl
@@ -457,18 +492,19 @@ int main(int argc, char *argv[]) {
             Application::GetInstance()->PrintResults();
         }
     }
-    
+
     dman->stopApplication(); // stop dump session. Close dump files, if necessary
-    
+
     if(coredumpfile != "unknown") {
         avr_message("write core dump file ...");
         WriteCoreDump(coredumpfile, dev1);
     }
 
-    // delete ui and device
+    // delete ui, device and ethernet
     delete ui;
     delete dev1;
-    
+    if (eth) delete eth;
+
     return 0;
 }
 

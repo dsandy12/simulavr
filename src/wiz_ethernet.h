@@ -23,7 +23,6 @@ protected:
                                 /// creating testbed specific code in the child's code.
 
     wiz_ethernet();             /// constructor
-    virtual ~wiz_ethernet();    /// destructor
 
     // Registers
     unsigned char regs[0x100];  /// memory for general purpose registers - all other memory is included in the sockets
@@ -44,6 +43,8 @@ public:
     Pin *getMisoPin();
     Pin *getSsPin();
     Pin *getSckPin();
+    virtual ~wiz_ethernet();    /// destructor
+
 };
 
 #endif
