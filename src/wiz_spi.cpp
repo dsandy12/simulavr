@@ -87,9 +87,14 @@ void wiz_spi::step()
         return;
     }
 
+    if (shiftCount == 8) {
+        shiftOut == dataOut;
+    }
+
     // here if Ss is set - look for a clock transition from low to high
     bool clk = *(eth->getSckPin());
     if ((clk)&&(clk!=lastClk)) {
+std::cout<<"Spi Tx = "<<std::hex<<(int)shiftOut<<std::endl;
         // a rising clock edge has been detected shift the mosi bit into datain
         bitsRead = bitsRead<<1;
         shiftOut = 0xff&(shiftOut<<1);
@@ -111,7 +116,6 @@ void wiz_spi::step()
         data = bitsRead;
         bitsRead = 0;
         shiftCount = 0;
-        shiftOut = dataOut;
         dataReady = true;
 std::cout<<"Spi Rx = "<<std::hex<<(int)data<<std::endl;
     }
