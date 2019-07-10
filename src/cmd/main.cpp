@@ -378,6 +378,7 @@ int main(int argc, char *argv[]) {
             cerr << "Unable to simulate ethernet controller" << endl;
             exit(1);
         }
+cout << "Simulating ethernet controller" << endl;
 
         // connect the ethernet controller pins to the  nets
         misonet.Add(eth->getMisoPin());
@@ -390,6 +391,7 @@ int main(int argc, char *argv[]) {
         misonet.Add(dev1->GetPin("MISO"));
         ssnet.Add(dev1->GetPin("SS"));
         sclknet.Add(dev1->GetPin("SCLK"));
+
     }
 
     /* We had to wait with dumping the available tracing values

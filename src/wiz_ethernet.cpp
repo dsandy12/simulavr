@@ -71,8 +71,8 @@ void wiz_ethernet::stepSockets() {
 /// Inherited from base class - step the the spi interface and spi transaction layer
 int wiz_ethernet::Step(bool &trueHwStep, SystemClockOffset *timeToNextStepIn_ns)
 {
-	// next step in 1uSec
-	*timeToNextStepIn_ns	= 1000;	// Once every microsecond
+	// next step in 100 nanoSec
+	*timeToNextStepIn_ns	= 100;	// Once every 100 nanosecond
 
 	spi.step();
 	processSpiTransaction();
