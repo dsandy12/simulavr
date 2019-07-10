@@ -23,7 +23,7 @@ wiz_spi::wiz_spi(wiz_ethernet *chip)
 bool wiz_spi::isSsSet()
 {
     if (!eth) return false;
-    return ~eth->getSsPin();
+    return !eth->getSsPin();
 }
 
 /********************************************************************
@@ -70,39 +70,40 @@ void wiz_spi::reset()
 void wiz_spi::step()
 {
     static unsigned int bitsRead = 0;
-    static unsigned int shifts = 0;
+    static unsigned int shiftOut = 0;
+    static unsigned int shiftCount = 0;
     static bool lastClk = false;
     if (~isSsSet()) {
         bitsRead = 0;
-        shifts = 0;
+        shiftCount = 0;
         shiftOut = dataOut;
-        lastclk = false;
+        lastClk = false;
         return;
     }
 
     // here if Ss is set - look for a clock transition from low to high
-    bool clock = eth->getSckPin();
-    if (clk)&&(clk!=lastClk) {
+    bool clk = eth->getSckPin();
+    if ((clk)&&(clk!=lastClk)) {
         // a rising clock edge has been detected shift the mosi bit into datain
         bitsRead = bitsRead<<1;
-        shiftOut = 0xff&(shiftout<<1);
+        shiftOut = 0xff&(shiftOut<<1);
         if (eth->getMosiPin()) bitsRead |=1;
         shiftCount ++;
     } else if (!clk) {
         // clock is low - make sure that the miso bit is being sent
         if (shiftOut&0x80) {
-            eth.getMisoPin().outState = Pin::HIGH;
+            eth->getMisoPin()->outState = Pin::HIGH;
         } else {
-            eth.getMisoPin().outState = Pin::LOW;
+            eth->getMisoPin()->outState = Pin::LOW;
         }
     }
     lastClk = clk;
 
-    if (shift_count == 8) {
+    if (shiftCount == 8) {
         // all bits for the byte of been received - reset for the next byte,
         // and signal that data is ready
         bitsRead = 0;
-        shift_count = 0;
+        shiftCount = 0;
         shiftOut = dataOut;
         dataReady = true;
         data = bitsRead;

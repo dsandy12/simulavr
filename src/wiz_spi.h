@@ -20,7 +20,8 @@ class wiz_spi
     private:
         wiz_ethernet *eth;
         unsigned char data;                     /// data byte received from the master
-        bool dataReady;                       /// is data ready from the master
+        bool dataReady;                         /// is data ready from the master
+        unsigned char dataOut;                  /// data to be sent to the master.  Set by the transaction layer
 };
 
 
