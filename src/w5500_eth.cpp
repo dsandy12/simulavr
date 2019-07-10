@@ -25,8 +25,6 @@
  ****************************************************************************
  */
 #include <string.h>
-#include <iostream>
-#include <iomanip>
 #include "wiz_spi.h"
 #include "w5500_eth.h"
 
@@ -96,31 +94,29 @@ void w5500_eth::processSpiTransaction() {
             bytesReceived=0;
             isWrite = false;
             spi.setOutputByte(0);
-std::cout<<"ADDR1 ="<<std::hex<<addr<<std::endl;
             break;
         case State::ADDR2:
             state = State::CMD;
             addr += spi.getByte();
             spi.setOutputByte(0);
-std::cout<<"ADDR2 ="<<std::hex<<addr<<std::endl;
             break;
         case State::CMD:
             state = State::DATA;
             cmd = spi.getByte();
             if ((cmd&0x4)!=0) isWrite = true;
             spi.setOutputByte(0);
-std::cout<<"CMD ="<<std::hex<<(int)cmd<<std::endl;
-            break;
+            if (!isWrite) {
+                readBufFromMem(regBase[(cmd>>3)&0x1F]+addr+bytesReceived,&ch,1);
+                spi.setOutputByte(ch);
+            }            break;
         case State::DATA:
             buffer[bytesReceived] = spi.getByte();
             if (!isWrite) {
                 // operation is a read - get the first byte and place it
                 // in the SPI output buffer.
-                readBufFromMem(regBase[(cmd>>3)&0x1F]+addr+bytesReceived,&ch,1);
-std::cout<<"RD Data ="<<std::hex<<(int)ch<<std::endl;
+                readBufFromMem(regBase[(cmd>>3)&0x1F]+addr+bytesReceived+1,&ch,1);
                 spi.setOutputByte(ch);
             } else {
-std::cout<<"WR Data ="<<std::hex<<(int)buffer[bytesReceived]<<std::endl;
                 spi.setOutputByte(0);
             }
             bytesReceived ++;
@@ -128,30 +124,3 @@ std::cout<<"WR Data ="<<std::hex<<(int)buffer[bytesReceived]<<std::endl;
     }
 }
 
-void w5500_eth::writeBufToMem(unsigned int addr,unsigned char *buffer,unsigned int len)
-{
-    if (addr<0x100) {
-        memcpy(&regs[addr],buffer,len);
-    } else if (addr<0x4000) {
-        // socket gp register
-        for (unsigned int i=0;i<len;i++) socket[(addr-0x400)/0x100].setRegValue((addr+i)&0xff,buffer[i]);
-    } else if (addr<0x6000) {
-        for (unsigned int i=0;i<len;i++) socket[(addr-0x4000)/0x800].setTxBufferValue((addr+i)&0x7ff,buffer[i]);
-    } else {
-        for (unsigned int i=0;i<len;i++) socket[(addr-0x6000)/0x800].setRxBufferValue((addr+i)&0x7ff,buffer[i]);
-    }
-}
-
-void w5500_eth::readBufFromMem(unsigned int addr,unsigned char *buffer,unsigned int len)
-{
-    if (addr<0x100) {
-        memcpy(buffer,&regs[addr],len);
-    } else if (addr<0x4000) {
-        // socket gp register
-        for (unsigned int i=0;i<len;i++) buffer[i] = socket[(addr-0x400)/0x100].getRegValue((addr+i)&0xff);
-    } else if (addr<0x6000) {
-        for (unsigned int i=0;i<len;i++) buffer[i] = socket[(addr-0x4000)/0x800].getTxBufferValue((addr+i)&0x7ff);
-    } else {
-        for (unsigned int i=0;i<len;i++) buffer[i] = socket[(addr-0x6000)/0x800].getRxBufferValue((addr+i)&0x7ff);
-    }
-}

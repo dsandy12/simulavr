@@ -1,5 +1,3 @@
-#include <iostream>
-#include <iomanip>
 #include "wiz_spi.h"
 #include "wiz_ethernet.h"
 
@@ -87,14 +85,9 @@ void wiz_spi::step()
         return;
     }
 
-    if (shiftCount == 8) {
-        shiftOut == dataOut;
-    }
-
     // here if Ss is set - look for a clock transition from low to high
     bool clk = *(eth->getSckPin());
     if ((clk)&&(clk!=lastClk)) {
-std::cout<<"Spi Tx = "<<std::hex<<(int)shiftOut<<std::endl;
         // a rising clock edge has been detected shift the mosi bit into datain
         bitsRead = bitsRead<<1;
         shiftOut = 0xff&(shiftOut<<1);
@@ -102,6 +95,7 @@ std::cout<<"Spi Tx = "<<std::hex<<(int)shiftOut<<std::endl;
         shiftCount ++;
     } else if (!clk) {
         // clock is low - make sure that the miso bit is being sent
+        if (shiftCount==0) shiftOut = dataOut;
         if (shiftOut&0x80) {
             eth->getMisoPin()->outState = Pin::HIGH;
         } else {
@@ -117,6 +111,5 @@ std::cout<<"Spi Tx = "<<std::hex<<(int)shiftOut<<std::endl;
         bitsRead = 0;
         shiftCount = 0;
         dataReady = true;
-std::cout<<"Spi Rx = "<<std::hex<<(int)data<<std::endl;
     }
 }

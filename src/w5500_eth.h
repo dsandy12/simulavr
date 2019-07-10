@@ -38,8 +38,8 @@ class w5500_eth : public wiz_ethernet
 
     protected:
         virtual void processSpiTransaction();
-        virtual void writeBufToMem(unsigned int addr,unsigned char *buffer,unsigned int len);
-        virtual void readBufFromMem(unsigned int addr,unsigned char *buffer,unsigned int len);
+        //virtual void writeBufToMem(unsigned int addr,unsigned char *buffer,unsigned int len);
+        //virtual void readBufFromMem(unsigned int addr,unsigned char *buffer,unsigned int len);
     private:
 };
 

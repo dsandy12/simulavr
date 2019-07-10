@@ -98,39 +98,3 @@ void w5100_eth::processSpiTransaction() {
     }
 }
 
-void w5100_eth::writeBufToMem(unsigned int addr,unsigned char *buffer,unsigned int len)
-{
-    if (addr<0x100) {
-        if (addr+len>=0x100) {
-            memcpy(&regs[addr],buffer,0x100-addr);
-        } else {
-            memcpy(&regs[addr],buffer,len);
-        }
-    } else if (addr<0x4000) {
-        // socket gp register
-        for (unsigned int i=0;i<len;i++) socket[(addr-0x400)/0x100].setRegValue((addr+i)&0xff,buffer[i]);
-    } else if (addr<0x6000) {
-        for (unsigned int i=0;i<len;i++) socket[(addr-0x4000)/0x800].setTxBufferValue((addr+i)&0x7ff,buffer[i]);
-    } else {
-        for (unsigned int i=0;i<len;i++) socket[(addr-0x6000)/0x800].setRxBufferValue((addr+i)&0x7ff,buffer[i]);
-    }
-}
-
-void w5100_eth::readBufFromMem(unsigned int addr,unsigned char *buffer,unsigned int len)
-{
-    if (addr<0x100) {
-        if (addr+len>=0x100) {
-            memcpy(buffer,&regs[addr],0x100-addr);
-        } else {
-            memcpy(buffer,&regs[addr],len);
-        }
-    } else if (addr<0x4000) {
-        // socket gp register
-        for (unsigned int i=0;i<len;i++) buffer[i] = socket[(addr-0x400)/0x100].getRegValue((addr+i)&0xff);
-    } else if (addr<0x6000) {
-        for (unsigned int i=0;i<len;i++) buffer[i] = socket[(addr-0x4000)/0x800].getTxBufferValue((addr+i)&0x7ff);
-    } else {
-        for (unsigned int i=0;i<len;i++) buffer[i] = socket[(addr-0x6000)/0x800].getRxBufferValue((addr+i)&0x7ff);
-    }
-}
-
