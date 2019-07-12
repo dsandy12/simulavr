@@ -2,8 +2,8 @@
  ****************************************************************************
  *
  * simulavr - A simulator for the Atmel AVR family of microcontrollers.
- * Copyright (C) 2001, 2002, 2003   Klaus Rudolph       
- * 
+ * Copyright (C) 2001, 2002, 2003   Klaus Rudolph
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -25,7 +25,7 @@
 #include "irqsystem.h"
 #include "hwstack.h"
 #include "hweeprom.h"
-#include "hwwado.h"
+#include "watchdog.h"
 #include "hwsreg.h"
 #include "avrerror.h"
 #include "avrfactory.h"
@@ -86,7 +86,7 @@ AvrDevice_atmega668base::AvrDevice_atmega668base(unsigned ram_bytes,
     assr_reg(&coreTraceGroup, "ASSR"),
     prescaler01(this, "01", &gtccr_reg, 0, 7),
     prescaler2(this, "2", PinAtPort(&portb, 6), &assr_reg, 5, &gtccr_reg, 1, 7)
-{ 
+{
     flagJMPInstructions = (flash_bytes > 8U * 1024U) ? true : false;
     if(flash_bytes > 4U * 1024U) {
         if(flash_bytes > 16U * 1024U)
@@ -99,7 +99,7 @@ AvrDevice_atmega668base::AvrDevice_atmega668base(unsigned ram_bytes,
         // atmega48
         fuses->SetFuseConfiguration(17, 0xffdf62);
     irqSystem = new HWIrqSystem(this, (flash_bytes > 8U * 1024U) ? 4 : 2, 26);
-    
+
     eeprom = new HWEeprom(this, irqSystem, ee_bytes, 22, HWEeprom::DEVMODE_EXTENDED);
     stack = new HWStackSram(this, 16);
     clkpr_reg = new CLKPRRegister(this, &coreTraceGroup);
@@ -124,12 +124,12 @@ AvrDevice_atmega668base::AvrDevice_atmega668base(unsigned ram_bytes,
     extirqpc->registerIrq(3, 0, new ExternalIRQPort(pcmsk0_reg, &portb));
     extirqpc->registerIrq(4, 1, new ExternalIRQPort(pcmsk1_reg, &portc));
     extirqpc->registerIrq(5, 2, new ExternalIRQPort(pcmsk2_reg, &portd));
-    
+
     timerIrq0 = new TimerIRQRegister(this, irqSystem, 0);
     timerIrq0->registerLine(0, new IRQLine("TOV0",  16));
     timerIrq0->registerLine(1, new IRQLine("OCF0A", 14));
     timerIrq0->registerLine(2, new IRQLine("OCF0B", 15));
-    
+
     timer0 = new HWTimer8_2C(this,
                              new PrescalerMultiplexerExt(&prescaler01, PinAtPort(&portd, 4)),
                              0,
@@ -144,7 +144,7 @@ AvrDevice_atmega668base::AvrDevice_atmega668base(unsigned ram_bytes,
     timerIrq1->registerLine(1, new IRQLine("OCF1A", 11));
     timerIrq1->registerLine(2, new IRQLine("OCF1B", 12));
     timerIrq1->registerLine(5, new IRQLine("ICF1",  10));
-    
+
     inputCapture1 = new ICaptureSource(PinAtPort(&portb, 0));
     timer1 = new HWTimer16_2C3(this,
                                new PrescalerMultiplexerExt(&prescaler01, PinAtPort(&portd, 5)),
@@ -156,12 +156,12 @@ AvrDevice_atmega668base::AvrDevice_atmega668base(unsigned ram_bytes,
                                new PinAtPort(&portb, 2),
                                timerIrq1->getLine("ICF1"),
                                inputCapture1);
-    
+
     timerIrq2 = new TimerIRQRegister(this, irqSystem, 2);
     timerIrq2->registerLine(0, new IRQLine("TOV2",  9));
     timerIrq2->registerLine(1, new IRQLine("OCF2A", 7));
     timerIrq2->registerLine(2, new IRQLine("OCF2B", 8));
-    
+
     timer2 = new HWTimer8_2C(this,
                              new PrescalerMultiplexer(&prescaler2),
                              2,
@@ -198,8 +198,8 @@ AvrDevice_atmega668base::AvrDevice_atmega668base(unsigned ram_bytes,
                     PinAtPort(&portb, 2),   // /SS
                     17,                     // irqvec
                     true);
-    
-    wado = new HWWado(this);
+
+    wado = new WatchDog(this, irqSystem);
 
     usart0 = new HWUsart(this,
                          irqSystem,
@@ -275,7 +275,7 @@ AvrDevice_atmega668base::AvrDevice_atmega668base(unsigned ram_bytes,
     // 0x63 reserved
     // 0x62 reserved
     rw[0x61]= clkpr_reg;
-    rw[0x60]= new NotSimulatedRegister("MCU register WDTCSR not simulated");
+    rw[0x60]= & ((WatchDog*) wado)->wdtcsr_reg;
     rw[0x5f]= statusRegister;
     rw[0x5e]= & ((HWStackSram *)stack)->sph_reg;
     rw[0x5d]= & ((HWStackSram *)stack)->spl_reg;
@@ -317,11 +317,11 @@ AvrDevice_atmega668base::AvrDevice_atmega668base(unsigned ram_bytes,
     rw[0x2B]= & portd.port_reg;
     rw[0x2A]= & portd.ddr_reg;
     rw[0x29]= & portd.pin_reg;
-    
+
     rw[0x28]= & portc.port_reg;
     rw[0x27]= & portc.ddr_reg;
     rw[0x26]= & portc.pin_reg;
-    
+
     rw[0x25]= & portb.port_reg;
     rw[0x24]= & portb.ddr_reg;
     rw[0x23]= & portb.pin_reg;
