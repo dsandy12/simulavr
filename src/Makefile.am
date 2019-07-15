@@ -57,6 +57,7 @@ libsim_la_SOURCES = \
   ioregs.cpp irqsystem.cpp ui/keyboard.cpp ui/lcd.cpp memory.cpp \
   ui/mysocket.cpp net.cpp pin.cpp ui/extpin.cpp pinatport.cpp pinmon.cpp \
   rwmem.cpp ui/scope.cpp ui/serialrx.cpp ui/serialtx.cpp spisrc.cpp spisink.cpp \
+  specialmem.cpp string2.cpp systemclock.cpp traceval.cpp ui/ui.cpp watchdog.cpp \
   specialmem.cpp string2.cpp systemclock.cpp traceval.cpp ui/ui.cpp \
   wiz_ethernet.cpp wiz_socket.cpp wiz_spi.cpp w5500_eth.cpp w5100_eth.cpp
 
