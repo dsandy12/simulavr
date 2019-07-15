@@ -2,8 +2,8 @@
  ****************************************************************************
  *
  * simulavr - A simulator for the Atmel AVR family of microcontrollers.
- * Copyright (C) 2001, 2002, 2003   Klaus Rudolph       
- * 
+ * Copyright (C) 2001, 2002, 2003   Klaus Rudolph
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -83,14 +83,14 @@ HWEeprom::HWEeprom(AvrDevice *_core,
     } else
         eecr_mask = 0x3f; // with operation mode bits
     eecr = 0;
-    
+
     eear_mask = (size - 1); // mask out all not significant MSB's, assumes that
                             // size is a 2^n value! This limits also access to
                             // wrong myMemory places.
     eear = 0;
-    
+
     opState = OPSTATE_READY;
-    
+
     Reset();
 }
 
@@ -98,7 +98,7 @@ void HWEeprom::Reset() {
     eecr &= 0x32; // bit 1 reflect EEPROM statemachine state before reset!
                   // bit 4 and bit 5 are operation modes, which are hold over reset
     eedr = 0;
-    
+
     opEnableCycles = 0;
     cpuHoldCycles = 0;
 }
@@ -132,11 +132,12 @@ void HWEeprom::SetEedr(unsigned char val) {
 void HWEeprom::SetEecr(unsigned char newval) {
     if(core->trace_on == 1)
         traceOut << "EECR=0x" << hex << (unsigned int)newval << dec;
-    
+
+    unsigned char eecr_old = eecr;
     eecr = newval & eecr_mask;
 
     switch(opState) {
-        
+
         default:
         case OPSTATE_READY:
             // enable write mode
@@ -158,7 +159,7 @@ void HWEeprom::SetEecr(unsigned char newval) {
             // write will not processed
             eecr &= ~CTRL_WRITE;
             break;
-            
+
         case OPSTATE_ENABLED:
             // enable bit will be hold in this state
             eecr |= CTRL_ENABLE;
@@ -201,7 +202,7 @@ void HWEeprom::SetEecr(unsigned char newval) {
                     traceOut << " EEPROM: Write start";
             }
             break;
-            
+
         case OPSTATE_WRITE:
             // enable write mode, mode change will not happen!
             if((eecr & CTRL_ENABLE) == CTRL_ENABLE) {
@@ -212,12 +213,18 @@ void HWEeprom::SetEecr(unsigned char newval) {
             // write is hold
             eecr |= CTRL_WRITE;
             break;
-            
+
+    }
+
+    // send an interrupt if the device is not busy and interrupts are enabled
+    if (((eecr_old&CTRL_IRQ)==0)&&((eecr&CTRL_IRQ)==CTRL_IRQ)) {
+        if((irqSystem != NULL) && ((eecr & CTRL_WRITE) == 0))
+            irqSystem->SetIrqFlag(this, irqVectorNo);
     }
 }
 
 unsigned int HWEeprom::CpuCycle() {
-    
+
     // handle enable state and fallback to ready
     if(opEnableCycles > 0) {
         opEnableCycles--;
@@ -229,7 +236,7 @@ unsigned int HWEeprom::CpuCycle() {
                 traceOut << " EEPROM: WriteEnable cleared";
         }
     }
-    
+
     // handle write state
     if(opState == OPSTATE_WRITE) {
         if(SystemClock::Instance().GetCurrentTime() >= writeDoneTime) {
@@ -258,18 +265,18 @@ unsigned int HWEeprom::CpuCycle() {
                 irqSystem->SetIrqFlag(this, irqVectorNo);
         }
     }
-    
+
     // deactivate engine, if not used
     if((opState == OPSTATE_READY) && (cpuHoldCycles == 0) && (opEnableCycles == 0))
         core->RemoveFromCycleList(this);
-    
+
     // handle cpu hold state
     if(cpuHoldCycles > 0) {
         cpuHoldCycles--;
         return 1;
     } else
         return 0;
-      
+
 }
 
 void HWEeprom::ClearIrqFlag(unsigned int vector) {
@@ -286,7 +293,7 @@ unsigned char HWEeprom::ReadFromAddress( unsigned int addr) {
 }
 
 void HWEeprom::WriteMem(const unsigned char *src, unsigned int offset, unsigned int secSize) {
-    for(unsigned int tt = 0; tt < secSize; tt++) { 
+    for(unsigned int tt = 0; tt < secSize; tt++) {
         if(tt + offset < size) {
             *(myMemory + tt + offset) = src[tt];
         }

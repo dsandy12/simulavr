@@ -791,9 +791,10 @@ bool wiz_socket::isDisconnected()
     tv.tv_usec = 1;
 
     FD_ZERO(&fd_set);
-    FD_SET(fd, &fd_set);
     if (tcpfd) {
         FD_SET(tcpfd, &fd_set);
+    } else {
+        FD_SET(fd, &fd_set);
     }
 
     if (select(FD_SETSIZE, &fd_set, 0, 0, &tv)==0) return false;
@@ -801,13 +802,18 @@ bool wiz_socket::isDisconnected()
     // now check the IO controller to see if there are any bytes ready
     // if not, the port is disconnected.
     long bytes = 0;
+    long bytesTcp = 0;
     if (tcpfd) {
-        if (ioctl(tcpfd, FIONREAD, &bytes)<0) return true;
+        if (ioctl(tcpfd, FIONREAD, &bytesTcp)<0) {
+            return true;
+        }
     } else {
-        if (ioctl(fd, FIONREAD, &bytes)<0) return true;
+        if (ioctl(fd, FIONREAD, &bytes)<0) {
+            return true;
+        }
     }
 
-    return (bytes==0);
+    return ((bytes+bytesTcp)==0);
 }
 
 /********************************************************************

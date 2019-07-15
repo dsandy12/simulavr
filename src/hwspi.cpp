@@ -4,7 +4,7 @@
  * simulavr - A simulator for the Atmel AVR family of microcontrollers.
  * Copyright (C) 2001, 2002, 2003   Klaus Rudolph
  * Copyright (C) 2009 Onno Kortmann
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -69,7 +69,7 @@ unsigned char HWSpi::GetSPDR() {
     return data_read;
 }
 
-unsigned char HWSpi::GetSPSR() { 
+unsigned char HWSpi::GetSPSR() {
     spsr_read=true;
     return spsr;
 }
@@ -117,7 +117,7 @@ void HWSpi::SetSPSR(unsigned char val) {
 }
 
 
-void HWSpi::SetSPCR(unsigned char val) { 
+void HWSpi::SetSPCR(unsigned char val) {
     spcr=val;
     if ( spcr & SPE) { //SPI is enabled
         core->AddToCycleList(this);
@@ -142,7 +142,7 @@ void HWSpi::SetSPCR(unsigned char val) {
             SCK.SetAlternateDdr(0);
             SS.SetUseAlternateDdr(1);
             SS.SetAlternateDdr(0);
-        } 
+        }
     } else { //Spi is off so unset alternate pin functions
 
         /* FIXME: Check whether these will be really tied
@@ -170,7 +170,7 @@ HWSpi::HWSpi(AvrDevice *_c,
          PinAtPort sck,
          PinAtPort ss,
          unsigned int ivec,
-         bool mm) : 
+         bool mm) :
     Hardware(_c), TraceValueRegister(_c, "SPI"),
     core(_c), irq(_irq),
     MOSI(mosi), MISO(miso), SCK(sck), SS(ss),
@@ -183,6 +183,11 @@ HWSpi::HWSpi(AvrDevice *_c,
     bitcnt=8;
     finished=false;
 
+    // register pins
+    core->RegisterPin("MOSI",&MOSI.GetPin());
+    core->RegisterPin("MISO",&MISO.GetPin());
+    core->RegisterPin("SS",&SS.GetPin());
+    core->RegisterPin("SCLK",&SCK.GetPin());
     trace_direct(this, "shift_in", &shift_in);
     trace_direct(this, "data_read", &data_read);
     trace_direct(this, "data_write", &data_write);
@@ -226,12 +231,12 @@ void HWSpi::trxend() {
         traceOut << "SPI: READ " << int(shift_in) << endl;
     /* set also data_write to allow continuous shifting
        when slave. */
-    data_write=data_read=shift_in; 
-                       
+    data_write=data_read=shift_in;
+
     spsr|=SPIF;
     if (spcr&SPIE) {
         irq->SetIrqFlag(this, irq_vector);
-    }   
+    }
     spsr_read=false;
     }
 }
@@ -241,11 +246,11 @@ unsigned int HWSpi::CpuCycle() {
         return 0;
     int bitpos=(spcr&DORD) ? bitcnt : 7-bitcnt;
     int bitpos_prec=(spcr&DORD) ? bitcnt-1 : 8-bitcnt;
-    
+
     if (core->trace_on && SPI_VERBOSE) {
         traceOut << "SPI: " << bitcnt << ", " << bitpos << ", " << clkcnt << endl;
     }
-    
+
     if (spcr & MSTR) {
         /* Check whether we're externally driven into slave mode.
            FIXME: It is unclear at least from mega8 docs if this behaviour is
