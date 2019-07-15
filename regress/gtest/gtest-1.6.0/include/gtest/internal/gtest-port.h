@@ -193,9 +193,20 @@
 # include <sys/stat.h>
 #endif  // !_WIN32_WCE
 
-#include <iostream>  // NOLINT
-#include <sstream>  // NOLINT
-#include <string>  // NOLINT
+#ifdef private
+	// this conditional compile was added to eliminate build errors
+	#undef private
+	#undef protected
+	#include <iostream>  // NOLINT
+	#include <sstream>  // NOLINT
+	#include <string>  // NOLINT
+	#define private public
+	#define protected public
+#else
+	#include <iostream>  // NOLINT
+	#include <sstream>  // NOLINT
+	#include <string>  // NOLINT
+#endif
 
 #define GTEST_DEV_EMAIL_ "googletestframework@@googlegroups.com"
 #define GTEST_FLAG_PREFIX_ "gtest_"
