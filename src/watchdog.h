@@ -37,7 +37,7 @@
 class AvrDevice;
 class HWIrqSystem;
 
-/** Watchdog (WDT) peripheral. Interrupts are not implemented. */
+/** Watchdog (WDT) peripheral. */
 class WatchDog: public HWWado {
 	protected:
 	unsigned char wdtcsr;
@@ -51,8 +51,8 @@ class WatchDog: public HWWado {
 		WatchDog(AvrDevice *,HWIrqSystem *); // { irqSystem= s;}
 		virtual unsigned int CpuCycle();
         virtual void ClearIrqFlag(unsigned int vector);
-		void SetWdtcsr(unsigned char val);
-		unsigned char GetWdtcsr() { return wdtcsr; }
+		void setWdtcsr(unsigned char val);
+		unsigned char getWdtcsr() { return wdtcsr; }
 		virtual void Wdr(); //reset the wado counter
 		virtual void Reset();
 

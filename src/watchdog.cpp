@@ -27,26 +27,32 @@
 #include "avrdevice.h"
 #include "systemclock.h"
 #include "irqsystem.h"
-#include <unistd.h> //
 
 #define WDCE 0x10
 #define WDRE 0x08
 #define WDIE 0x40
-
-int printing; //
 
 
 WatchDog::WatchDog(AvrDevice *c, HWIrqSystem *i):
     HWWado(c),
     irqSystem(i),
     core(c),
-    wdtcsr_reg(this, "WDTCSR", this, &WatchDog::GetWdtcsr, &WatchDog::SetWdtcsr) {
+    wdtcsr_reg(this, "WDTCSR", this, &WatchDog::getWdtcsr, &WatchDog::setWdtcsr) {
 	core->AddToCycleList(this);
 	irqSystem->DebugVerifyInterruptVector(6, this);
 	Reset();
 }
 
-void WatchDog::SetWdtcsr(unsigned char val) {
+/********************************************************************
+ * setWdtcsr()
+ * Sets the value of the WDRE, WDIE, WDCE, and prescalers.
+ *
+ * params:
+ *    val (UN CH) - the byte with new WDTCSR values
+ *
+ * returns: None
+ */
+void WatchDog::setWdtcsr(unsigned char val) {
 	if (((val & WDRE) != 0) && ((wdtcsr & WDCE) != 0)) { //Reset enabled
 		wdtcsr = ((val & WDRE) | (wdtcsr & 0xf7));
 
@@ -54,12 +60,12 @@ void WatchDog::SetWdtcsr(unsigned char val) {
 
 	if  (((val & 0x27) != 0) && ((wdtcsr & WDCE) != 0)) { //Changing prescalers
         wdtcsr = ((val & 0x27) | (wdtcsr & 0xd8));
-        Wdr();
+        Wdr(); //Updates the timeout timer to the time set by prescalers
 
 	}
 
 	if ((val & WDCE) != 0) { //Change enabled
-		counter = 4;
+		counter = 4; //Sets the 4-cycle gate of the WDCE
 		wdtcsr = ((val & WDCE) | (wdtcsr & 0xef));
 
 	}
@@ -71,118 +77,132 @@ void WatchDog::SetWdtcsr(unsigned char val) {
 
 }
 
+/********************************************************************
+ * CpuCycle()
+ * Calls for a reset or interrupt if timeout has occurred. Also changes the 4-cycle gate of the WDCE.
+ *
+ * params: None
+ *
+ * returns: None
+ */
 unsigned int WatchDog::CpuCycle() {
-    //std::cout << timeOutAt << std::endl;
-	if (counter > 0) { //Count for WDCE
+	if (counter > 0) { //countdown for WDCE 4-cycle gate
 		counter--;
 
 	}
 
-	if (counter == 0) wdtcsr &= (0xff - WDCE); //after 4 cpu cycles
+	if (counter == 0) wdtcsr &= (0xff - WDCE); //after 4 cpu cycles, sets WDCE to 0.
 
-	if ((((wdtcsr & WDRE) != 0) && ((wdtcsr & WDIE) == 0)) && (timeOutAt == SystemClock::Instance().GetCurrentTime() )) { //Reset mode
-		core->Reset();
+	if (((wdtcsr & WDRE) != 0) && ((wdtcsr & WDIE) == 0)) {  //Reset mode
+		if  ((timeOutAt <= SystemClock::Instance().GetCurrentTime()) && (timeOutAt)) {
+            core->Reset();
+
+        }
 	}
 
-
-	if (((wdtcsr & WDRE) == 0) && ((wdtcsr & WDIE) != 0)) {
-     if  ((timeOutAt <= SystemClock::Instance().GetCurrentTime()) && (timeOutAt)) { //Interrupt mode
-
-            //std::cout << "I am about to interrupt" << std::endl;
-
+	if (((wdtcsr & WDRE) == 0) && ((wdtcsr & WDIE) != 0)) { //Interrupt mode
+        if  ((timeOutAt <= SystemClock::Instance().GetCurrentTime()) && (timeOutAt)) {
             irqSystem->SetIrqFlag(this, 6);
             timeOutAt = 0;
-
-            //std::cout << "I signaled the interrupt vector" << std::endl;
-
-
-            //printing = 1; //
-
-     } else {
-
-     //std::cout << timeOutAt << " " << SystemClock::Instance().GetCurrentTime() << std::endl;
-     }
-
-
+        }
     }
 
+    if ((((wdtcsr & WDRE) != 0) && (wdtcsr & WDIE) != 0)) { //Interrupt and reset mode
+        if  ((timeOutAt <= SystemClock::Instance().GetCurrentTime()) && (timeOutAt)) {
+            if (timeOutOnce != 1) { //Interrupt portion
+                irqSystem->SetIrqFlag(this, 6);
+                timeOutOnce = 1;
+                timeOutAt = 0;
 
-    /*if (((((wdtcsr & WDRE) != 0) && (wdtcsr & WDIE) != 0)) && (timeOutAt < SystemClock::Instance().GetCurrentTime() && (timeOutOnce != 1))) { //Interrupt and reset mode (Interrupt portion)
-        irqSystem->SetIrqFlag(this, 6);
-        timeOutOnce = 1;
-        timeOutAt = 0;
+            }
 
+            if (timeOutOnce == 1) { //Reset portion
+                core->Reset();
+            }
+        }
     }
 
-    if (((((wdtcsr & WDRE) != 0) && (wdtcsr & WDIE) != 0)) && (timeOutAt < SystemClock::Instance().GetCurrentTime() && (timeOutOnce == 1))) { //Interrupt and reset mode (Reset portion)
-        core->Reset();
-
-    }
-    */
     return 0;
 }
 
+/********************************************************************
+ * ClearIrqFlag()
+ * Clears interrupt flag if vector 6 was called.
+ *
+ * params:
+ *    vector (UN IN) - The number of the interrupt vector that was initiated.
+ *
+ * returns: None
+ */
 void WatchDog::ClearIrqFlag(unsigned int vector){
     if(vector == 6) {
         irqSystem->ClearIrqFlag(6);
+        timeOutOnce = 0;
     }
 }
 
-
+/********************************************************************
+ * Reset()
+ * Resets the WDTCSR
+ *
+ * params: None
+ *
+ * returns: None
+ */
 void WatchDog::Reset() {
 	timeOutAt = 0;
 	wdtcsr = 0;
 
 }
 
-
+/********************************************************************
+ * Wdr()
+ * Sets the timeout value according to the prescaler values.
+ *
+ * params: None
+ *
+ * returns: None
+ */
 void WatchDog::Wdr() {
 	SystemClockOffset currentTime= SystemClock::Instance().GetCurrentTime();
 	switch (wdtcsr & 0x27) {
-		case 0:
-		    //std::cout << "I accessed the 16ms" << std::endl;
-		    //wdtcsr = 0x20;
+		case 0x00:
 			timeOutAt= currentTime+ 16000000; //16ms
 			break;
 
-		case 1:
-		    //std::cout << "I accessed the 32ms" << std::endl;
+		case 0x01:
 			timeOutAt= currentTime+ 32000000; //32ms
 			break;
 
-		case 2:
-            //std::cout << "I accessed the 64ms" << std::endl;
+		case 0x02:
 			timeOutAt= currentTime+ 64000000; //64 ms
 			break;
 
-		case 3:
+		case 0x03:
 			timeOutAt= currentTime+ 125000000; //125 ms
 			break;
 
-		case 4:
+		case 0x04:
 			timeOutAt= currentTime+ 250000000; //250 ms
 			break;
 
-        case 5:
+        case 0x05:
             timeOutAt= currentTime+ 500000000; //500 ms
             break;
 
-		case 6:
+		case 0x06:
 			timeOutAt= currentTime+ 1000000000ULL; //1 s
 			break;
 
-		case 7:
-		    //std::cout << "I accessed the 2s";
+		case 0x07:
 			timeOutAt= currentTime+ 2000000000ULL; //2 s
 			break;
 
 		case 0x20:
-		    //std::cout << "I accessed the 4s";
 			timeOutAt= currentTime+ 4000000000ULL; //4 s
 			break;
 
         case 0x21:
-            //std::cout << "I accessed the 8s";
             timeOutAt= currentTime+ 8000000000ULL; //8 s
             break;
 
