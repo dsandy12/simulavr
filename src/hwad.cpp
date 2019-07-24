@@ -2,8 +2,8 @@
  ****************************************************************************
  *
  * simulavr - A simulator for the Atmel AVR family of microcontrollers.
- * Copyright (C) 2001, 2002, 2003   Klaus Rudolph       
- * 
+ * Copyright (C) 2001, 2002, 2003   Klaus Rudolph
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -191,6 +191,8 @@ float HWAdmuxM8::GetValue(int select, float vcc) {
         return 0.0;                            // GND channel
     if(adChannel == 14)
         return core->v_bandgap.GetRawAnalog(); // BG channel
+    if(adChannel == 8)
+        return core->v_temperature.GetRawAnalog(); // temperature sensor
     if(adChannel >= numPins) {
         avr_warning("adc multiplexer has selected non existent channel %d", adChannel);
         return 0.0;

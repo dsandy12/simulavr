@@ -2,8 +2,8 @@
  ****************************************************************************
  *
  * simulavr - A simulator for the Atmel AVR family of microcontrollers.
- * Copyright (C) 2001, 2002, 2003   Klaus Rudolph       
- * 
+ * Copyright (C) 2001, 2002, 2003   Klaus Rudolph
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -64,7 +64,7 @@ class AddressExtensionRegister;
 
 //! Basic AVR device, contains the core functionality
 class AvrDevice: public SimulationMember, public TraceValueRegister {
-    
+
     private:
         RWMemoryMember **invalidRW; //!< hold invalid RW memory cells created by device
         const unsigned int ioSpaceSize;
@@ -84,7 +84,7 @@ class AvrDevice: public SimulationMember, public TraceValueRegister {
         SystemClockOffset clockFreq;  ///< Period of a tick (1/F_OSC) in [ns]
         std::map < std::string, Pin *> allPins;
         std::string actualFilename;
-        
+
         /// Count of cycles before next instruction is executed (i.e. countdown)
         int cpuCycles;
 
@@ -109,9 +109,12 @@ class AvrDevice: public SimulationMember, public TraceValueRegister {
         TraceValueCoreRegister coreTraceGroup;
         bool deferIrq;  ///< Almost always false.
         unsigned int newIrqPc;
-        unsigned int actualIrqVector; 
+        unsigned int actualIrqVector;
         Pin v_supply; //!< represents supply voltage level, needed for analog peripherals
         Pin v_bandgap; //!< represents bandgap (ref) voltage level, needed for analog peripherals
+        Pin v_temperature; //!<  represents the chip's internal temperature sensor >
+                          //!< relationship of voltage to temperature follows this equation:
+                          //!< T = 0.001062*v + 0.28976
 
         bool flagIWInstructions; //!< ADIW and SBIW instructions are available (not on most tiny's!)
         bool flagJMPInstructions; //!< CALL and JMP instructions are available (only on devices with bigger flash)
@@ -134,11 +137,11 @@ class AvrDevice: public SimulationMember, public TraceValueRegister {
         RWSreg *statusRegister;   //!< the memory interface for status
         HWWado *wado;  ///< WDT timer
 
-        std::vector<Hardware *> hwResetList; 
-        std::vector<Hardware *> hwCycleList; 
+        std::vector<Hardware *> hwResetList;
+        std::vector<Hardware *> hwCycleList;
 
         DumpManager *dumpManager;
-    
+
         AvrDevice(unsigned int ioSpaceSize, unsigned int IRamSize, unsigned int ERamSize, unsigned int flashSize);
         virtual ~AvrDevice();
 
@@ -153,7 +156,7 @@ class AvrDevice: public SimulationMember, public TraceValueRegister {
         //! Removes from the cycle list, if possible.
         /*! Does nothing if the part is not in the cycle list. */
         void RemoveFromCycleList(Hardware *hw);
-    
+
         void Load(const char* n); //!< Load flash, eeprom, signature, fuses from elf file, wrapper for LoadBFD or LoadSimpleELF
         void ReplaceIoRegister(unsigned int offset, RWMemoryMember *);
         bool ReplaceMemRegister(unsigned int offset, RWMemoryMember *);
@@ -195,7 +198,7 @@ class AvrDevice: public SimulationMember, public TraceValueRegister {
         unsigned int GetMemIRamSize(void) { return iRamSize; }
         //! Get configured external RAM size
         unsigned int GetMemERamSize(void) { return eRamSize; }
-        
+
         //! Get a value of RW memory cell
         unsigned char GetRWMem(unsigned addr);
         //! Set a value to RW memory cell
