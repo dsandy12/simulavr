@@ -23,35 +23,40 @@
  *  $Id$
  */
 
-#ifndef HWWADO
-#define HWWADO
+#ifndef Watchdog
+#define Watchdog
 
 #include "hardware.h"
+#include "avrdevice.h"
 #include "rwmem.h"
 #include "systemclocktypes.h"
 #include "traceval.h"
+#include "hwwado.h"
+
 
 class AvrDevice;
 class HWIrqSystem;
 
-/** Watchdog (WDT) peripheral. Interrupts are not implemented. */
-class HWWado: public Hardware, public TraceValueRegister {
+/** Watchdog (WDT) peripheral. */
+class WatchDog: public HWWado {
 	protected:
-	unsigned char wdtcr;
-	unsigned char cntWde; //4 cycles counter for unsetting the wde
+	unsigned char wdtcsr;
+	unsigned char counter; //4 cycles counter for unsetting the wde
+	unsigned int timeOutOnce;
 	SystemClockOffset timeOutAt;
 	AvrDevice *core;
+	HWIrqSystem *irqSystem;
 
 	public:
-		HWWado(AvrDevice *); // { irqSystem= s;}
+		WatchDog(AvrDevice *,HWIrqSystem *); // { irqSystem= s;}
 		virtual unsigned int CpuCycle();
-
-		void SetWdtcr(unsigned char val);
-		unsigned char GetWdtcr() { return wdtcr; }
+        virtual void ClearIrqFlag(unsigned int vector);
+		void setWdtcsr(unsigned char val);
+		unsigned char getWdtcsr() { return wdtcsr; }
 		virtual void Wdr(); //reset the wado counter
 		virtual void Reset();
 
-        IOReg<HWWado> wdtcr_reg;
+        IOReg<WatchDog> wdtcsr_reg;
 };
 
 

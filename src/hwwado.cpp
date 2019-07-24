@@ -2,8 +2,8 @@
  ****************************************************************************
  *
  * simulavr - A simulator for the Atmel AVR family of microcontrollers.
- * Copyright (C) 2001, 2002, 2003   Klaus Rudolph		
- * 
+ * Copyright (C) 2001, 2002, 2003   Klaus Rudolph
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -35,19 +35,19 @@ void HWWado::SetWdtcr(unsigned char val) {
 	unsigned char oldWDTOE= wdtcr & WDTOE;
 	unsigned char newWDE= val   & WDE;
 
-	if ( newWDE != 0) { 			//enable the wado allways allowed
+	if ( newWDE == 1) { 			//enable the wado allways allowed
 		wdtcr=val;
 	} else {  						//unset the wado
-		if (oldWDTOE !=0) { 		//WDTOE was set, 
+		if (oldWDTOE ==1) { 		//WDTOE was set,
 			wdtcr=val;
 		}
-	} 
+	}
 
-	if ( (val & WDTOE ) != 0) {
+	if ( (val & WDTOE ) == 1) {
 		cntWde=4;
 	}
 
-} 
+}
 
 unsigned int HWWado::CpuCycle() {
 	if ( cntWde > 0) {
@@ -69,7 +69,7 @@ HWWado::HWWado(AvrDevice *c):
     Hardware(c),
     TraceValueRegister(c, "WADO"),
     core(c),
-    wdtcr_reg(this, "WDTCR",
+    wdtcr_reg(this, "wdtcr",
               this, &HWWado::GetWdtcr, &HWWado::SetWdtcr) {
 	core->AddToCycleList(this);
 	Reset();
@@ -82,7 +82,7 @@ void HWWado::Reset() {
 
 
 void HWWado::Wdr() {
-	SystemClockOffset currentTime= SystemClock::Instance().GetCurrentTime(); 
+	SystemClockOffset currentTime= SystemClock::Instance().GetCurrentTime();
 	switch ( wdtcr& 0x7) {
 		case 0:
 			timeOutAt= currentTime+ 47000000; //47ms
@@ -107,11 +107,11 @@ void HWWado::Wdr() {
 		case 5:
 			timeOutAt= currentTime+ 1500000000; //1.5 s
 			break;
-			
+
 		case 6:
 			timeOutAt= currentTime+ 3000000000ULL; //3 s
 			break;
-		
+
 		case 7:
 			timeOutAt= currentTime+ 6000000000ULL; //6 s
 			break;

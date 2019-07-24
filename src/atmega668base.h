@@ -2,8 +2,8 @@
  ****************************************************************************
  *
  * simulavr - A simulator for the Atmel AVR family of microcontrollers.
- * Copyright (C) 2001, 2002, 2003   Klaus Rudolph       
- * 
+ * Copyright (C) 2001, 2002, 2003   Klaus Rudolph
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
@@ -34,13 +34,14 @@
 #include "hwspi.h"
 #include "hwtimer/timerprescaler.h"
 #include "hwtimer/hwtimer.h"
+#include "watchdog.h"
 
 /*! AVRDevice class for ATMega48/88/168/328
   \todo This device isn't completely implemented. There is no
   boot loader section support for >= ATMega88, only normal interrupt vector
   start address supported, incomplete usart registers (and maybe more ...) */
 class AvrDevice_atmega668base: public AvrDevice {
-    
+
     protected:
         Pin                 adc6;        //!< adc channel 6 input pin
         Pin                 adc7;        //!< adc channel 7 input pin
@@ -81,16 +82,16 @@ class AvrDevice_atmega668base: public AvrDevice {
         OSCCALRegister*     osccal_reg;  //!< OSCCAL IO register
 
     public:
-        
+
         /*! Creates the device for ATMega48/88/168/328
           @param ram_bytes how much SRAM does the device own
           @param flash_bytes how much flash memory does the device own
           @param ee_bytes how much EEPROM space does the device own */
         AvrDevice_atmega668base(unsigned ram_bytes, unsigned flash_bytes,
                                 unsigned ee_bytes );
-        
+
         ~AvrDevice_atmega668base();
-        
+
 };
 
 //! AVR device class for ATMega328, see AvrDevice_atmega668base.
