@@ -10,7 +10,7 @@
 #define RXPORT 7777
 #define TXPORT 8877
 
-CbUI::CbUI(Pin *t, PinAtPort * led) : tempPin(t), fd(0)
+CbUI::CbUI(Pin *t, Pin * led) : tempPin(t), fd(0)
 {
     struct sockaddr_in local_addr;
     int optval;
@@ -33,7 +33,7 @@ CbUI::CbUI(Pin *t, PinAtPort * led) : tempPin(t), fd(0)
     }
 
     // set pin callback for changes to led state
-    led->GetPin().RegisterCallback(this);
+    led->RegisterCallback(this);
 }
 
 CbUI::~CbUI()

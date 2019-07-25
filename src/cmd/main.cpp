@@ -60,6 +60,7 @@ using namespace std;
 #include "irqsystem.h"
 #include "wiz_ethernet.h"
 #include "w5500_eth.h"
+#include "cbui.h"
 
 #include "dumpargs.h"
 
@@ -171,6 +172,7 @@ int main(int argc, char *argv[]) {
 
     bool simulateEthernet = false;
     wiz_ethernet * eth = 0;
+    CbUI * cbui = 0;
     Net ssnet, sclknet, mosinet, misonet;
 
     while (1) {
@@ -392,6 +394,10 @@ cout << "Simulating ethernet controller" << endl;
         ssnet.Add(dev1->GetPin("SS"));
         sclknet.Add(dev1->GetPin("SCLK"));
 
+        if (gdbserver_flag) {
+            // if debugging, also add the codeblocks integration
+            cbui = new CbUI(&(dev1->v_temperature),dev1->GetPin("B1"));
+        }
     }
 
     /* We had to wait with dumping the available tracing values
@@ -487,6 +493,7 @@ cout << "Simulating ethernet controller" << endl;
         GdbServer gdb1(dev1, global_gdbserver_port, global_gdb_debug, globalWaitForGdbConnection);
         SystemClock::Instance().Add(&gdb1);
         if (eth) SystemClock::Instance().Add(eth);
+        if (cbui) SystemClock::Instance().Add(cbui);
         SystemClock::Instance().Endless();
         if(global_verbose_on) {
             cout << "SystemClock::Endless stopped" << endl
@@ -506,6 +513,7 @@ cout << "Simulating ethernet controller" << endl;
     delete ui;
     delete dev1;
     if (eth) delete eth;
+    if (cbui) delete cbui;
 
     return 0;
 }

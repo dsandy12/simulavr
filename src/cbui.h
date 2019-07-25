@@ -23,7 +23,7 @@ public:
     /*=================
      *  Public Member Functions
      =================*/
-    CbUI(Pin *t, PinAtPort *led);                     /* Constructor */
+    CbUI(Pin *t, Pin *led);                     /* Constructor */
     virtual ~CbUI();                                /* Destructor */
     void reset();                                   /* reset the ui to its power-on state (do nothing) */
     virtual int Step(bool &trueHwStep, SystemClockOffset *timeToNextStepIn_ns=0);
