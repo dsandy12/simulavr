@@ -114,7 +114,8 @@ class AvrDevice: public SimulationMember, public TraceValueRegister {
         Pin v_bandgap; //!< represents bandgap (ref) voltage level, needed for analog peripherals
         Pin v_temperature; //!<  represents the chip's internal temperature sensor >
                           //!< relationship of voltage to temperature follows this equation:
-                          //!< T = 0.001062*v + 0.28976
+                          //!< T = 942.029*v -272.97
+                          //!< bit resolution is 0.001074V which corresponds to approximately 1 degree C
 
         bool flagIWInstructions; //!< ADIW and SBIW instructions are available (not on most tiny's!)
         bool flagJMPInstructions; //!< CALL and JMP instructions are available (only on devices with bigger flash)

@@ -1,3 +1,27 @@
+/*
+ ****************************************************************************
+ *
+ * CbUI - a user interface to provide device temperature control and LED
+ * visualization from within the Code::Blocks IDE.
+ *
+ * Copyright (C) 2019   Douglas Sandy
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ ****************************************************************************
+ */
 #include <netinet/in.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -10,6 +34,14 @@
 #define RXPORT 7777
 #define TXPORT 8877
 
+/********************************************************************
+* CbUI()
+* Constructor
+*
+* params:
+*    t (in) - a pointer to the temperature sensor pin
+*    led (in) - a pointer to the LED pin
+*/
 CbUI::CbUI(Pin *t, Pin * led) : tempPin(t), fd(0)
 {
     struct sockaddr_in local_addr;
@@ -36,6 +68,10 @@ CbUI::CbUI(Pin *t, Pin * led) : tempPin(t), fd(0)
     led->RegisterCallback(this);
 }
 
+/********************************************************************
+* CbUI()
+* Destructor
+*/
 CbUI::~CbUI()
 {
     if (fd) close(fd);
@@ -78,20 +114,35 @@ unsigned char CbUI::recvFromCb()
     return buffer;
 }
 
+/********************************************************************
+* PinStateHasChanged()
+* This callback function is called whenever the LED pin state has changed.
+* The new pin state is sent to Code::Blocks.
+*
+* params:
+*    p (input) - a pointer to the pin that changed.
+* returns:
+*   None
+*/
 void CbUI::PinStateHasChanged(Pin*p)
 {
+    static char last_sent = 0;
+
     // get the state of the pin
     switch (p->outState) {
     case Pin::PULLUP:
     case Pin::HIGH:
-        sendToCb('H');
+        if (last_sent!='H') sendToCb('H');
+        last_sent = 'H';
         break;
     case Pin::PULLDOWN:
     case Pin::LOW:
-        sendToCb('L');
+        if (last_sent!='L') sendToCb('L');
+        last_sent = 'L';
         break;
     default:
-        sendToCb('Z');
+        if (last_sent!='Z') sendToCb('Z');
+        last_sent = 'Z';
         break;
     }
 }
@@ -110,21 +161,28 @@ void CbUI::reset()
 /********************************************************************
 * Step()
 *
-* called at each simulation step to see if code::blocks has sent
+* Called periodically by the simulator to see if code::blocks has sent
 * temperature change requests.
 */
 int CbUI::Step(bool &trueHwStep, SystemClockOffset *timeToNextStepIn_ns)
 {
+    float val;
     *timeToNextStepIn_ns = 1000000UL;  // check every 1ms of simulation time
     if (isDataReady()) {
         // receive data
         unsigned char ch = recvFromCb();
         switch (ch) {
         case '>':
-            // increase the chip temperature
+            // increase the chip temperature by about 5 degrees C
+            val = tempPin->GetAnalogValue(1.1) +0.005;
+            if (val>1.1) val = 1.1;
+            tempPin->SetAnalogValue(val);
             break;
         case '<':
-            // decrease the chip temperature
+            // decrease the chip temperature by about 5 degrees C
+            val = tempPin->GetAnalogValue(1.1) - 0.005;
+            if (val<0) val = 0;
+            tempPin->SetAnalogValue(val);
             break;
         }
     }
