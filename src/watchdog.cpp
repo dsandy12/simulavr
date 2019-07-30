@@ -155,7 +155,7 @@ void WatchDog::Reset() {
  * returns: None
  */
 void WatchDog::Wdr() {
-	SystemClockOffset currentTime= SystemClock::Instance().GetCurrentTime();
+    SystemClockOffset currentTime= SystemClock::Instance().GetCurrentTime();
 	timeoutCount = 0;
 	switch (wdtcsr & 0x27) {
 		case 0x00:

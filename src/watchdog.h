@@ -42,7 +42,7 @@ class WatchDog: public HWWado {
 	protected:
 	unsigned char wdtcsr;
 	unsigned char counter; //4 cycles counter for unsetting the wde
-	unsigned int timeoutCount;
+    unsigned int timeoutCount;
 	SystemClockOffset timeOutAt;
 	AvrDevice *core;
 	HWIrqSystem *irqSystem;
