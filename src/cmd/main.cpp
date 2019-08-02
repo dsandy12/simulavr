@@ -138,6 +138,7 @@ const char Usage[] =
     "                      will be written.\n"
     "-V --version          print out version and exit immediately\n"
     "-E --ethernet         simulate a wiznet 5500 ethernet controller connected to spi bus"
+    "-x --codeblocks       Include support for integration with Code::Blocks IDE"
     "-h --help             print this help\n"
     "\n";
 
@@ -171,6 +172,7 @@ int main(int argc, char *argv[]) {
     string tracer_avail_out;
 
     bool simulateEthernet = false;
+    bool codeblocksSupport = false;
     wiz_ethernet * eth = 0;
     CbUI * cbui = 0;
     Net ssnet, sclknet, mosinet, misonet;
@@ -201,6 +203,7 @@ int main(int argc, char *argv[]) {
             {"irqstatistic", 0, 0, 's'},
             {"help", 0, 0, 'h'},
             {"ethernet",0,0,'E'},
+            {"codeblocks",0,0,'x'},
             {0, 0, 0, 0}
         };
 
@@ -347,6 +350,10 @@ int main(int argc, char *argv[]) {
                 simulateEthernet = true;
                 break;
 
+            case 'x':
+                codeblocksSupport = true;
+                break;
+
             default:
                 cout << Usage
                      << "Supported devices:" << endl
@@ -393,11 +400,11 @@ cout << "Simulating ethernet controller" << endl;
         misonet.Add(dev1->GetPin("MISO"));
         ssnet.Add(dev1->GetPin("SS"));
         sclknet.Add(dev1->GetPin("SCLK"));
+    }
 
-        if (gdbserver_flag) {
-            // if debugging, also add the codeblocks integration
-            cbui = new CbUI(&(dev1->v_temperature),dev1->GetPin("B1"));
-        }
+    if ((gdbserver_flag)&&(codeblocksSupport)) {
+        // if debugging, also add the codeblocks integration
+        cbui = new CbUI(&(dev1->v_temperature),dev1->GetPin("B1"));
     }
 
     /* We had to wait with dumping the available tracing values
