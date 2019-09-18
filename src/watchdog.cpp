@@ -37,9 +37,11 @@ WatchDog::WatchDog(AvrDevice *c, HWIrqSystem *i):
     HWWado(c),
     irqSystem(i),
     core(c),
-    wdtcsr_reg(this, "WDTCSR", this, &WatchDog::getWdtcsr, &WatchDog::setWdtcsr) {
+    wdtcsr_reg(this, "WDTCSR", this, &WatchDog::getWdtcsr, &WatchDog::setWdtcsr)
+{
 	core->AddToCycleList(this);
 	irqSystem->DebugVerifyInterruptVector(6, this);
+	timeoutCount = 0;
 	Reset();
 }
 
@@ -55,26 +57,21 @@ WatchDog::WatchDog(AvrDevice *c, HWIrqSystem *i):
 void WatchDog::setWdtcsr(unsigned char val) {
 	if (((val & WDRE) != 0) && ((wdtcsr & WDCE) != 0)) { //Reset enabled
 		wdtcsr = ((val & WDRE) | (wdtcsr & 0xf7));
-
 	}
 
 	if  (((val & 0x27) != 0) && ((wdtcsr & WDCE) != 0)) { //Changing prescalers
         wdtcsr = ((val & 0x27) | (wdtcsr & 0xd8));
         Wdr(); //Updates the timeout timer to the time set by prescalers
-
 	}
 
 	if ((val & WDCE) != 0) { //Change enabled
 		counter = 4; //Sets the 4-cycle gate of the WDCE
 		wdtcsr = ((val & WDCE) | (wdtcsr & 0xef));
-
 	}
 
 	if ((val & WDIE) != 0) { //Interrupt enabled
         wdtcsr = ((val & WDIE) | (wdtcsr & 0xbf));
-
 	}
-
 }
 
 /********************************************************************
@@ -88,7 +85,6 @@ void WatchDog::setWdtcsr(unsigned char val) {
 unsigned int WatchDog::CpuCycle() {
 	if (counter > 0) { //countdown for WDCE 4-cycle gate
 		counter--;
-
 	}
 
 	if (counter == 0) wdtcsr &= (0xff - WDCE); //after 4 cpu cycles, sets WDCE to 0.
@@ -96,7 +92,6 @@ unsigned int WatchDog::CpuCycle() {
 	if (((wdtcsr & WDRE) != 0) && ((wdtcsr & WDIE) == 0)) {  //Reset mode
 		if  ((timeOutAt <= SystemClock::Instance().GetCurrentTime()) && (timeOutAt)) {
             core->Reset();
-
         }
 	}
 
@@ -109,14 +104,11 @@ unsigned int WatchDog::CpuCycle() {
 
     if ((((wdtcsr & WDRE) != 0) && (wdtcsr & WDIE) != 0)) { //Interrupt and reset mode
         if  ((timeOutAt <= SystemClock::Instance().GetCurrentTime()) && (timeOutAt)) {
-            if (timeOutOnce != 1) { //Interrupt portion
+            if (timeoutCount == 0) { //Interrupt portion
                 irqSystem->SetIrqFlag(this, 6);
-                timeOutOnce = 1;
-                timeOutAt = 0;
-
-            }
-
-            if (timeOutOnce == 1) { //Reset portion
+                Wdr();
+                timeoutCount = 1;
+            } else { //Reset portion
                 core->Reset();
             }
         }
@@ -137,7 +129,6 @@ unsigned int WatchDog::CpuCycle() {
 void WatchDog::ClearIrqFlag(unsigned int vector){
     if(vector == 6) {
         irqSystem->ClearIrqFlag(6);
-        timeOutOnce = 0;
     }
 }
 
@@ -152,7 +143,7 @@ void WatchDog::ClearIrqFlag(unsigned int vector){
 void WatchDog::Reset() {
 	timeOutAt = 0;
 	wdtcsr = 0;
-
+	timeoutCount = 0;
 }
 
 /********************************************************************
@@ -164,7 +155,8 @@ void WatchDog::Reset() {
  * returns: None
  */
 void WatchDog::Wdr() {
-	SystemClockOffset currentTime= SystemClock::Instance().GetCurrentTime();
+    SystemClockOffset currentTime= SystemClock::Instance().GetCurrentTime();
+	timeoutCount = 0;
 	switch (wdtcsr & 0x27) {
 		case 0x00:
 			timeOutAt= currentTime+ 16000000; //16ms
@@ -205,6 +197,5 @@ void WatchDog::Wdr() {
         case 0x21:
             timeOutAt= currentTime+ 8000000000ULL; //8 s
             break;
-
 	}
 }
