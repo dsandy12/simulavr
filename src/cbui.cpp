@@ -200,16 +200,16 @@ bool CbUI::isDataReady()
     if (fd<=0) return false;
 
     struct timeval tv;
-    fd_set  fd_set;
+    fd_set  fdset;
 
     // use select to see if there the port is ready
     tv.tv_sec  = 0;
     tv.tv_usec = 1;
 
-    FD_ZERO(&fd_set);
-    FD_SET(fd, &fd_set);
+    FD_ZERO(&fdset);
+    FD_SET(fd, &fdset);
 
-    if (select(FD_SETSIZE, &fd_set, 0, 0, &tv)==0) return false;
+    if (select(FD_SETSIZE, &fdset, 0, 0, &tv)==0) return false;
 
     // now check the IO controller to see if there are any bytes ready
     // if not, the port is disconnected.

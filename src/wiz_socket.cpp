@@ -783,21 +783,21 @@ bool wiz_socket::isDisconnected()
     if (!fd) return true;   // socket is closed
 
     struct timeval tv;
-    fd_set  fd_set;
+    fd_set  fdset;
 
     // use select to see if there the port is ready - a disconnected
     // port will return true;
     tv.tv_sec  = 0;
     tv.tv_usec = 1;
 
-    FD_ZERO(&fd_set);
+    FD_ZERO(&fdset);
     if (tcpfd) {
-        FD_SET(tcpfd, &fd_set);
+        FD_SET(tcpfd, &fdset);
     } else {
-        FD_SET(fd, &fd_set);
+        FD_SET(fd, &fdset);
     }
 
-    if (select(FD_SETSIZE, &fd_set, 0, 0, &tv)==0) return false;
+    if (select(FD_SETSIZE, &fdset, 0, 0, &tv)==0) return false;
 
     // now check the IO controller to see if there are any bytes ready
     // if not, the port is disconnected.
@@ -828,18 +828,18 @@ bool wiz_socket::isDataReady()
     if (descriptor<=0) return false;
 
     struct timeval tv;
-    fd_set  fd_set;
+    fd_set  fdset;
 
     // use select to see if there the port is ready - a disconnected
     // port will return true;
     tv.tv_sec  = 0;
     tv.tv_usec = 1;
 
-    FD_ZERO(&fd_set);
-    FD_SET(fd, &fd_set);
-    if (descriptor!=fd) FD_SET(descriptor,&fd_set);
+    FD_ZERO(&fdset);
+    FD_SET(fd, &fdset);
+    if (descriptor!=fd) FD_SET(descriptor,&fdset);
 
-    if (select(FD_SETSIZE, &fd_set, 0, 0, &tv)==0) return false;
+    if (select(FD_SETSIZE, &fdset, 0, 0, &tv)==0) return false;
 
     // now check the IO controller to see if there are any bytes ready
     // if not, the port is disconnected.
@@ -856,15 +856,15 @@ bool wiz_socket::isDataReady()
 */
 bool wiz_socket::isConnectionAvailable() {
     struct timeval tv;
-    fd_set  fd_set;
+    fd_set  fdset;
 
     // use select to see if there the port is ready - a disconnected
     // port will return true;
     tv.tv_sec  = 0;
     tv.tv_usec = 1;
 
-    FD_ZERO(&fd_set);
-    FD_SET(fd, &fd_set);
+    FD_ZERO(&fdset);
+    FD_SET(fd, &fdset);
 
-    return (select(FD_SETSIZE, &fd_set, 0, 0, &tv)>0);
+    return (select(FD_SETSIZE, &fdset, 0, 0, &tv)>0);
 }
