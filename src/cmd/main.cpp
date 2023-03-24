@@ -29,7 +29,7 @@
 #include <cstring>
 #include <map>
 #include <limits>
-using namespace std;
+//using namespace std;
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,21 +72,21 @@ const char *SplitOffsetFile(const char *arg,
     char *end;
 
     if(!StringToUnsignedLong(arg, offset, &end, base)) {
-        cerr << name << ": offset is not a number" << endl;
+        std::cerr << name << ": offset is not a number" << std::endl;
         exit(1);
     }
     //position behind the "," or any other delimiter for the offset
     if(!*end) {
-        cerr << name << ": argument ends before filename" << endl;
+        std::cerr << name << ": argument ends before filename" << std::endl;
         exit(1);
     }
     if(*end != ',') {
-        cerr << name << ": argument does not have comma before filename" << endl;
+        std::cerr << name << ": argument does not have comma before filename" << std::endl;
         exit(1);
     }
     ++end;
     if(!*end) {
-        cerr << name << ": argument has comma but no filename" << endl;
+        std::cerr << name << ": argument has comma but no filename" << std::endl;
         exit(1);
     }
 
@@ -145,10 +145,10 @@ const char Usage[] =
 int main(int argc, char *argv[]) {
     int c;
     bool gdbserver_flag = 0;
-    string coredumpfile("unknown");
-    string filename("unknown");
-    string devicename("unknown");
-    string tracefilename("unknown");
+    std::string coredumpfile("unknown");
+    std::string filename("unknown");
+    std::string devicename("unknown");
+    std::string tracefilename("unknown");
     long global_gdbserver_port = 1212;
     int global_gdb_debug = 0;
     bool globalWaitForGdbConnection = true; //please wait for gdb connection
@@ -162,14 +162,14 @@ int main(int argc, char *argv[]) {
     unsigned long readFromPipeOffset = 0x21;
     unsigned long writeToAbort = 0;
     unsigned long writeToExit = 0;
-    string readFromPipeFileName = "";
-    string writeToPipeFileName = "";
+    std::string readFromPipeFileName = "";
+    std::string writeToPipeFileName = "";
 
-    vector<string> terminationArgs;
+    std::vector<std::string> terminationArgs;
 
-    vector<string> tracer_opts;
+    std::vector<std::string> tracer_opts;
     bool tracer_dump_avail = false;
-    string tracer_avail_out;
+    std::string tracer_avail_out;
 
     bool simulateEthernet = false;
     bool codeblocksSupport = false;
@@ -233,43 +233,43 @@ int main(int argc, char *argv[]) {
 
             case 'a': // write to abort
                 if(!StringToUnsignedLong(optarg, &writeToAbort, NULL, 16)) {
-                    cerr << "writeToAbort is not a number" << endl;
+                    std::cerr << "writeToAbort is not a number" << std::endl;
                     exit(1);
                 }
                 break;
 
             case 'e': // write to exit
                 if(!StringToUnsignedLong(optarg, &writeToExit, NULL, 16)) {
-                    cerr << "writeToExit is not a number" << endl;
+                    std::cerr << "writeToExit is not a number" << std::endl;
                     exit(1);
                 }
                 break;
 
             case 'F':
                 if(!StringToUnsignedLongLong(optarg, &fcpu, NULL, 10)) {
-                    cerr << "frequency is not a number" << endl;
+                    std::cerr << "frequency is not a number" << std::endl;
                     exit(1);
                 }
                 if(fcpu == 0) {
-                    cerr << "frequency is zero" << endl;
+                    std::cerr << "frequency is zero" << std::endl;
                     exit(1);
                 }
                 break;
 
             case 'l':
                 if(!StringToUnsignedLongLong( optarg, &linestotrace, NULL, 10)) {
-                    cerr << "linestotrace is not a number" << endl;
+                    std::cerr << "linestotrace is not a number" << std::endl;
                     exit(1);
                 }
                 break;
 
             case 'm':
                 if(!StringToUnsignedLongLong( optarg, &maxRunTime, NULL, 10)) {
-                    cerr << "maxRunTime is not a number" << endl;
+                    std::cerr << "maxRunTime is not a number" << std::endl;
                     exit(1);
                 }
                 if(maxRunTime == 0) {
-                    cerr << "maxRunTime is zero" << endl;
+                    std::cerr << "maxRunTime is zero" << std::endl;
                     exit(1);
                 }
                 avr_message("Maximum Run Time: %lld", maxRunTime);
@@ -302,7 +302,7 @@ int main(int argc, char *argv[]) {
 
             case 'p':
                 if(!StringToLong( optarg, &global_gdbserver_port, NULL, 10)) {
-                    cerr << "GDB Server Port is not a number" << endl;
+                    std::cerr << "GDB Server Port is not a number" << std::endl;
                     exit(1);
                 }
                 avr_message("Running on port: %ld", global_gdbserver_port);
@@ -316,15 +316,15 @@ int main(int argc, char *argv[]) {
                 break;
 
             case 'V':
-                cout << "SimulAVR " << VERSION << endl
-                     << "See documentation for copyright and distribution terms" << endl
-                     << endl;
+                std::cout << "SimulAVR " << VERSION << std::endl
+                     << "See documentation for copyright and distribution terms" << std::endl
+                     << std::endl;
                 exit(0);
                 break;
 
             case 'n':
-                cout << "We will NOT wait for a gdb connection, "
-                        "simulation starts now!" << endl;
+                std::cout << "We will NOT wait for a gdb connection, "
+                        "simulation starts now!" << std::endl;
                 globalWaitForGdbConnection = false;
                 break;
 
@@ -355,9 +355,9 @@ int main(int argc, char *argv[]) {
                 break;
 
             default:
-                cout << Usage
-                     << "Supported devices:" << endl
-                     << AvrFactory::supportedDevices() << endl;
+                std::cout << Usage
+                     << "Supported devices:" << std::endl
+                     << AvrFactory::supportedDevices() << std::endl;
                 exit(0);
         }
     }
@@ -384,10 +384,10 @@ int main(int argc, char *argv[]) {
     if (simulateEthernet) {
         eth = new w5500_eth();
         if (!eth) {
-            cerr << "Unable to simulate ethernet controller" << endl;
+            std::cerr << "Unable to simulate ethernet controller" << std::endl;
             exit(1);
         }
-cout << "Simulating ethernet controller" << endl;
+std::cout << "Simulating ethernet controller" << std::endl;
 
         // connect the ethernet controller pins to the  nets
         misonet.Add(eth->getMisoPin());
@@ -418,7 +418,7 @@ cout << "Simulating ethernet controller" << endl;
     SetDumpTraceArgs(tracer_opts, dev1);
 
     if(!gdbserver_flag && filename == "unknown") {
-        cerr << "Specify either --file <executable> or --gdbserver (or --gdb-stdin)" << endl;
+        std::cerr << "Specify either --file <executable> or --gdbserver (or --gdb-stdin)" << std::endl;
         exit(1);
     }
 
@@ -453,7 +453,7 @@ cout << "Simulating ethernet controller" << endl;
     }
 
     //if we have a file we can check out for termination lines.
-    vector<string>::iterator ii;
+    std::vector<std::string>::iterator ii;
     for(ii = terminationArgs.begin(); ii != terminationArgs.end(); ii++) {
         avr_message("Termination or Breakpoint Symbol: %s", (*ii).c_str());
         dev1->RegisterTerminationSymbol((*ii).c_str());
@@ -487,12 +487,12 @@ cout << "Simulating ethernet controller" << endl;
         if (eth) SystemClock::Instance().Add(eth);
         if(maxRunTime == 0) {
             steps = SystemClock::Instance().Endless();
-            cout << "SystemClock::Endless stopped" << endl
-                 << "number of cpu cycles simulated: " << dec << steps << endl;
+            std::cout << "SystemClock::Endless stopped" << std::endl
+                 << "number of cpu cycles simulated: " << std::dec << steps << std::endl;
         } else {                                           // limited
             steps = SystemClock::Instance().Run(maxRunTime);
-            cout << "Ran too long. Terminated after "
-                 << dec << steps << " cpu cycles simulated." << endl;
+            std::cout << "Ran too long. Terminated after "
+                 << std::dec << steps << " cpu cycles simulated." << std::endl;
         }
         Application::GetInstance()->PrintResults();
     } else { // gdb should be activated
@@ -503,8 +503,8 @@ cout << "Simulating ethernet controller" << endl;
         if (cbui) SystemClock::Instance().Add(cbui);
         SystemClock::Instance().Endless();
         if(global_verbose_on) {
-            cout << "SystemClock::Endless stopped" << endl
-                 << "number of cpu cycles simulated: " << dec << steps << endl;
+            std::cout << "SystemClock::Endless stopped" << std::endl
+                 << "number of cpu cycles simulated: " << std::dec << steps << std::endl;
             Application::GetInstance()->PrintResults();
         }
     }
