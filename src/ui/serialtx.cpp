@@ -181,6 +181,8 @@ int SerialTxFile::Step(bool &trueHwStep,
         // more than one byte waiting, they're accepted at every serial clock
         // tick, which means, ten times faster than they can be sent.
         *timeToNextStepIn_ns = (SystemClockOffset)1000000;
+        
+    return 0;
 }
 
 // ===========================================================================
